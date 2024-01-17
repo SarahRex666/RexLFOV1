@@ -2,7 +2,10 @@
 #include <Adafruit_MCP4725.h>
 Adafruit_MCP4725 dac;
 #define DAC_RESOLUTION    (12)
-int ledPin = 5;
+int sineledPin = 5;
+int triangleledPin = 1;
+int squareledPin = 2;
+int randomledPin = 3;
 const int potPin = 20;
 int modeSelector = 0;
 const int buttonPin = 0;
@@ -184,19 +187,31 @@ const int sineWaveTable[512] =
 
 void setup(void) {
   dac.begin(0x62);
-  pinMode(ledPin, OUTPUT);
+  pinMode(sineledPin, OUTPUT);
+  pinMode(triangleledPin, OUTPUT);
+  pinMode(squareledPin, OUTPUT);
+  pinMode(randomledPin, OUTPUT);
   pinMode(buttonPin, INPUT_PULLUP);
 }
 
 
 void loop() {
   int potValue = analogRead(potPin);
-  int lfoRate = map(potValue, 0, 1023, 10, 500); // Map pot value to adjust LFO rate (slower max rate)
+  int lfoRate = map(potValue, 0, 1023, 5, 3000); // Map pot value to adjust LFO rate (slower max rate)
   int buttonState = digitalRead(buttonPin);
 
   if (buttonState == LOW) {
     modeSelector = (modeSelector + 1) % 4;
     delay(200);
+  }
+
+    // Turn off sineled when not in Sine wave mode
+  if (modeSelector != 0) {
+    analogWrite(sineledPin, 0);
+  }
+
+    if (modeSelector != 3) {
+    analogWrite(randomledPin, 0);
   }
 
   switch (modeSelector) {
@@ -205,7 +220,7 @@ void loop() {
       for (int i = 0; i < 512; i++) {
         dac.setVoltage(sineWaveTable[i], false);
         int mappedValue = map(sineWaveTable[i], 0, 4095, 0, 50);
-        analogWrite(ledPin, mappedValue);
+        analogWrite(sineledPin, mappedValue); // Adjusted amplitude control for 10k pot
         delayMicroseconds(lfoRate);  // Use delayMicroseconds within the loop
       }
       break;
@@ -215,7 +230,7 @@ void loop() {
         for (int i = 0; i < 512; i++) {
           dac.setVoltage(triangleWaveTable[i], false);
           int mappedValue = map(triangleWaveTable[i], 0, 4095, 0, 50);
-          analogWrite(ledPin, mappedValue);
+          analogWrite(triangleledPin, mappedValue);
           delayMicroseconds(lfoRate);  // Use delayMicroseconds within the loop
         }
       break;
@@ -225,10 +240,10 @@ void loop() {
         for (int i = 0; i < 512; i++) {
           if (i < 256) {
             dac.setVoltage(4095, false);
-            analogWrite(ledPin, 50);
+            analogWrite(squareledPin, 50);
           } else {
             dac.setVoltage(0, false);
-            analogWrite(ledPin, 0);
+            analogWrite(squareledPin, 0);
           }
           delayMicroseconds(lfoRate);  // Use delayMicroseconds within the loop
         }
@@ -240,7 +255,7 @@ void loop() {
         int randomNumber = random(4095);
         dac.setVoltage(randomNumber, false);
         int mappedValue = map(randomNumber, 0, 4095, 0, 50);
-        analogWrite(ledPin, mappedValue);
+        analogWrite(randomledPin, mappedValue);
         delay(lfoRate);  // Use delay with millis within the loop
       }
       break;
